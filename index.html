@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Zeppelin</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E6FF 100%);
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E6FF 100%);
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            line-height: 1.4;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #titleScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #1e3c72 0%, #2a5298 50%, #87ceeb 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+        
+        #titleScreen h1 {
+            color: #FFD700;
+            font-size: 4rem;
+            margin: 0;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            font-weight: bold;
+            letter-spacing: 2px;
+            z-index: 35;
+            position: relative;
+        }
+        
+        #titleScreen .subtitle {
+            color: white;
+            font-size: 1.2rem;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            z-index: 35;
+            position: relative;
+        }
+        
+        #titleScreen .instructions {
+            color: #E0E0E0;
+            font-size: 1rem;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.5;
+            margin: 15px 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+            z-index: 35;
+            position: relative;
+        }
+        
+        #titleScreen .start-prompt {
+            display: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        .airplane-demo {
+            position: absolute;
+            top: calc(60% + 15px);
+            left: 20%;
+            width: 80px;
+            height: 30px;
+            background: #FF4444;
+            animation: fly 8s linear infinite;
+            border-radius: 50px;
+            z-index: 38;
+            border: 2px solid #CC3333;
+        }
+        
+        .airplane-demo::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -8px;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 8px;
+            background: #AA2222;
+            border-radius: 2px;
+        }
+        
+        .airplane-demo::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 6px;
+            background: #8B4513;
+            border-radius: 2px;
+        }
+
+        .tow-line {
+            position: absolute;
+            top: calc(60% + 15px);
+            left: 20%;
+            width: 120px;
+            height: 2px;
+            background: #333;
+            transform-origin: left center;
+            animation: flyTowLine 8s linear infinite;
+            z-index: 36;
+            margin-top: 15px;
+        }
+
+        .banner {
+            position: absolute;
+            top: calc(60% + 15px - 10px);
+            left: 20%;
+            width: 200px;
+            height: 40px;
+            background: white;
+            color: #2a5298;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #FFD700;
+            border-radius: 5px;
+            transform-origin: left center;
+            animation: flyBanner 8s linear infinite, flutter 0.3s ease-in-out infinite alternate;
+            z-index: 37;
+            text-shadow: none;
+        }
+
+        .banner::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-right: 10px solid #FFD700;
+        }
+
+        .banner::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid white;
+        }
+        
+        @keyframes fly {
+            0% { 
+                left: -10%; 
+                transform: translateY(0px) translateX(0px); 
+            }
+            25% { 
+                transform: translateY(-10px) translateX(0px); 
+            }
+            50% { 
+                transform: translateY(5px) translateX(0px); 
+            }
+            75% { 
+                transform: translateY(-5px) translateX(0px); 
+            }
+            100% { 
+                left: 110%; 
+                transform: translateY(0px) translateX(0px); 
+            }
+        }
+
+        /* Tow-line uses same animation as zeppelin but with X offset and positioned at zeppelin's rear */
+        @keyframes flyTowLine {
+            0% { 
+                left: -10%; 
+                transform: translateY(0px) translateX(-55px); 
+            }
+            25% { 
+                transform: translateY(-10px) translateX(-55px); 
+            }
+            50% { 
+                transform: translateY(5px) translateX(-55px); 
+            }
+            75% { 
+                transform: translateY(-5px) translateX(-55px); 
+            }
+            100% { 
+                left: 110%; 
+                transform: translateY(0px) translateX(-55px); 
+            }
+        }
+
+        @keyframes flyBanner {
+            0% { 
+                left: -10%; 
+                transform: translateY(-10px) translateX(-260px) rotate(1deg); 
+            }
+            25% { 
+                transform: translateY(-20px) translateX(-260px) rotate(-0.5deg); 
+            }
+            50% { 
+                transform: translateY(-5px) translateX(-260px) rotate(1.5deg); 
+            }
+            75% { 
+                transform: translateY(-15px) translateX(-260px) rotate(-1deg); 
+            }
+            100% { 
+                left: 110%; 
+                transform: translateY(-10px) translateX(-260px) rotate(1deg); 
+            }
+        }
+
+        @keyframes flutter {
+            0% { transform: translateY(-10px) translateX(-260px) rotate(1deg) scaleY(0.98); }
+            100% { transform: translateY(-5px) translateX(-260px) rotate(1.5deg) scaleY(1.02); }
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="titleScreen">
+            <h1>Red Zeppelin</h1>
+            <div class="subtitle">Navigate through mountainous caves and survive!</div>
+            <div class="instructions">
+                Use WASD or Arrow Keys to fly
+            </div>
+            <div class="airplane-demo"></div>
+            <div class="tow-line"></div>
+            <div class="banner">Press SPACE to Start</div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Lives: <span id="lives"></span></div>
+        </div>
+        <div id="instructions">
+            Use WASD or Arrow Keys to fly • Avoid mountain walls and cave ceilings!
+        </div>
+        <div id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>Press SPACE to return to title</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const titleScreenElement = document.getElementById('titleScreen');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let gameState = {
+            screen: 'title',
+            running: false,
+            score: 0,
+            speed: 3,
+            scrollSpeed: 3,
+            lives: 3,
+            invulnerable: false,
+            invulnerabilityTimer: 0,
+            exploding: false,
+            explosionTimer: 0,
+            explosionParticles: [],
+            cavesEnabled: false,
+            caveStartTime: 300,
+            transitionPhase: false,
+            transitionProgress: 0,
+            balloons: [],
+            starburstAnimations: [],
+            cannons: [],
+            bullets: [],
+            lastLifeScoreThreshold: 0,
+            newLifeAnimation: null,
+            zeppelins: [],
+            electricFences: []
+        };
+
+        // Airplane object (now a zeppelin)
+        const airplane = {
+            x: 100,
+            y: canvas.height / 2,
+            width: 60,
+            height: 25,
+            speed: 4,
+            velX: 0,
+            velY: 0,
+            maxSpeed: 6
+        };
+
+        // Terrain points for smooth curves
+        let terrain = {
+            topPoints: [],
+            bottomPoints: [],
+            segments: []
+        };
+
+        // Input handling
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            
+            if (e.key === ' ') {
+                if (gameState.screen === 'title') {
+                    startGame();
+                } else if (gameState.screen === 'gameOver') {
+                    showTitleScreen();
+                }
+            }
+            e.preventDefault();
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Show title screen
+        function showTitleScreen() {
+            gameState.screen = 'title';
+            gameState.running = false;
+            titleScreenElement.style.display = 'flex';
+            gameOverElement.style.display = 'none';
+        }
+
+        // Start game
+        function startGame() {
+            gameState.screen = 'playing';
+            gameState.running = true;
+            gameState.score = 0;
+            gameState.speed = 3;
+            gameState.scrollSpeed = 3;
+            gameState.lives = 3;
+            gameState.invulnerable = false;
+            gameState.invulnerabilityTimer = 0;
+            gameState.exploding = false;
+            gameState.explosionTimer = 0;
+            gameState.explosionParticles = [];
+            gameState.cavesEnabled = false;
+            gameState.caveStartTime = 300;
+            gameState.transitionPhase = false;
+            gameState.transitionProgress = 0;
+            airplane.x = 100;
+            airplane.y = canvas.height / 2;
+            airplane.velX = 0;
+            airplane.velY = 0;
+            titleScreenElement.style.display = 'none';
+            
+            const titleClouds = document.querySelector('.title-clouds');
+            if (titleClouds) {
+                titleClouds.remove();
+            }
+            
+            gameState.balloons = [];
+            gameState.starburstAnimations = [];
+            gameState.cannons = [];
+            gameState.bullets = [];
+            gameState.lastLifeScoreThreshold = 0;
+            gameState.newLifeAnimation = null;
+            gameState.zeppelins = [];
+            gameState.electricFences = [];
+            updateLivesDisplay();
+            initTerrain();
+        }
+
+        // Initialize terrain
+        function initTerrain() {
+            terrain.topPoints = [];
+            terrain.bottomPoints = [];
+            terrain.segments = [];
+            
+            let topHeight = 50;
+            let bottomHeight = canvas.height - 80;
+            
+            for (let x = 0; x <= canvas.width + 200; x += 20) {
+                topHeight = 50;
+                bottomHeight = canvas.height - 80;
+                
+                terrain.topPoints.push({ x, y: topHeight });
+                terrain.bottomPoints.push({ x, y: bottomHeight });
+            }
+        }
+
+        // Update terrain
+        function updateTerrain() {
+            if (gameState.exploding) return;
+            
+            terrain.topPoints.forEach(point => point.x -= gameState.scrollSpeed);
+            terrain.bottomPoints.forEach(point => point.x -= gameState.scrollSpeed);
+            terrain.segments.forEach(segment => segment.x -= gameState.scrollSpeed);
+            
+            gameState.balloons.forEach(balloon => balloon.x -= gameState.scrollSpeed);
+            gameState.cannons.forEach(cannon => cannon.x -= gameState.scrollSpeed);
+            gameState.bullets.forEach(bullet => bullet.x -= gameState.scrollSpeed);
+            gameState.zeppelins.forEach(zeppelin => zeppelin.x -= gameState.scrollSpeed);
+            gameState.electricFences.forEach(fence => fence.x -= gameState.scrollSpeed);
+            
+            terrain.topPoints = terrain.topPoints.filter(point => point.x > -50);
+            terrain.bottomPoints = terrain.bottomPoints.filter(point => point.x > -50);
+            terrain.segments = terrain.segments.filter(segment => segment.x > -segment.width - 50);
+            
+            gameState.balloons = gameState.balloons.filter(balloon => balloon.x > -50);
+            gameState.cannons = gameState.cannons.filter(cannon => cannon.x > -50);
+            gameState.bullets = gameState.bullets.filter(bullet => bullet.x > -50 && bullet.x < canvas.width + 50);
+            gameState.zeppelins = gameState.zeppelins.filter(zeppelin => zeppelin.x > -100);
+            gameState.electricFences = gameState.electricFences.filter(fence => fence.x > -50);
+            
+            const lastTopPoint = terrain.topPoints[terrain.topPoints.length - 1];
+            const lastBottomPoint = terrain.bottomPoints[terrain.bottomPoints.length - 1];
+            
+            if (lastTopPoint.x < canvas.width + 100) {
+                for (let x = lastTopPoint.x + 20; x <= canvas.width + 200; x += 20) {
+                    let newTopHeight, newBottomHeight;
+                    
+                    if (!gameState.cavesEnabled && !gameState.transitionPhase && gameState.score > gameState.caveStartTime) {
+                        gameState.transitionPhase = true;
+                        gameState.transitionProgress = 0;
+                    }
+                    
+                    if (!gameState.transitionPhase && !gameState.cavesEnabled) {
+                        newTopHeight = 50;
+                        newBottomHeight = canvas.height - 80;
+                    } else if (gameState.transitionPhase) {
+                        const transitionDistance = 300;
+                        gameState.transitionProgress = Math.min(transitionDistance, gameState.transitionProgress + 20);
+                        
+                        const transitionFactor = gameState.transitionProgress / transitionDistance;
+                        
+                        const targetTopHeight = canvas.height * 0.3;
+                        const targetBottomHeight = canvas.height * 0.7;
+                        
+                        newTopHeight = 50 + (targetTopHeight - 50) * transitionFactor;
+                        newBottomHeight = (canvas.height - 80) + ((targetBottomHeight - (canvas.height - 80)) * transitionFactor);
+                        
+                        if (transitionFactor > 0.3) {
+                            newTopHeight += (Math.random() - 0.5) * 20 * transitionFactor;
+                            newBottomHeight += (Math.random() - 0.5) * 20 * transitionFactor;
+                        }
+                        
+                        if (gameState.transitionProgress >= transitionDistance) {
+                            gameState.transitionPhase = false;
+                            gameState.cavesEnabled = true;
+                        }
+                    } else {
+                        const passageTime = gameState.score * 0.01;
+                        const verticalMovement = Math.sin(passageTime) * (canvas.height * 0.15);
+                        const baseCenterY = canvas.height * 0.5 + verticalMovement;
+                        
+                        const baseTerrainVariation = (Math.random() - 0.5) * 40;
+                        newTopHeight = lastTopPoint.y + baseTerrainVariation;
+                        newBottomHeight = lastBottomPoint.y + baseTerrainVariation;
+                        
+                        const minBaseGap = airplane.width * 8;
+                        const targetTop = baseCenterY - minBaseGap / 2;
+                        const targetBottom = baseCenterY + minBaseGap / 2;
+                        
+                        newTopHeight = newTopHeight * 0.3 + targetTop * 0.7;
+                        newBottomHeight = newBottomHeight * 0.3 + targetBottom * 0.7;
+                        
+                        newTopHeight = Math.max(30, Math.min(canvas.height - minBaseGap - 30, newTopHeight));
+                        newBottomHeight = Math.max(newTopHeight + minBaseGap, Math.min(canvas.height - 30, newBottomHeight));
+                        
+                        if (newBottomHeight - newTopHeight < minBaseGap) {
+                            const center = (newTopHeight + newBottomHeight) / 2;
+                            newTopHeight = center - minBaseGap / 2;
+                            newBottomHeight = center + minBaseGap / 2;
+                        }
+                    }
+                    
+                    terrain.topPoints.push({ x, y: newTopHeight });
+                    terrain.bottomPoints.push({ x, y: newBottomHeight });
+                    
+                    if (gameState.transitionPhase && gameState.transitionProgress >= 250 && gameState.transitionProgress <= 300) {
+                        const caveWidth = 150 + Math.random() * 100;
+                        const caveTopVariation = (Math.random() - 0.5) * 60;
+                        const caveBottomVariation = (Math.random() - 0.5) * 60;
+                        
+                        const minGap = airplane.width * 2.5;
+                        let caveTop = newTopHeight + caveTopVariation;
+                        let caveBottom = newBottomHeight + caveBottomVariation;
+                        
+                        if (caveBottom - caveTop < minGap) {
+                            const center = (caveTop + caveBottom) / 2;
+                            caveTop = center - minGap / 2;
+                            caveBottom = center + minGap / 2;
+                        }
+                        
+                        terrain.segments.push({
+                            x: x,
+                            width: caveWidth,
+                            topY: caveTop,
+                            bottomY: caveBottom,
+                            type: 'cave'
+                        });
+                    }
+                    
+                    else if (gameState.cavesEnabled && Math.random() < 0.3) {
+                        const caveWidth = 100 + Math.random() * 200;
+                        
+                        const passageTime = gameState.score * 0.01;
+                        const verticalMovement = Math.sin(passageTime) * (canvas.height * 0.15);
+                        const baseCenterY = canvas.height * 0.5 + verticalMovement;
+                        
+                        const caveTopVariation = (Math.random() - 0.5) * 100;
+                        const caveBottomVariation = (Math.random() - 0.5) * 100;
+                        
+                        const minCaveGap = airplane.width * 8;
+                        let caveTop = baseCenterY - minCaveGap / 2 + caveTopVariation;
+                        let caveBottom = baseCenterY + minCaveGap / 2 + caveBottomVariation;
+                        
+                        if (caveBottom - caveTop < minCaveGap) {
+                            const center = (caveTop + caveBottom) / 2;
+                            caveTop = center - minCaveGap / 2;
+                            caveBottom = center + minCaveGap / 2;
+                        }
+                        
+                        caveTop = Math.max(20, Math.min(canvas.height - minCaveGap - 20, caveTop));
+                        caveBottom = Math.max(caveTop + minCaveGap, Math.min(canvas.height - 20, caveBottom));
+                        
+                        if (caveBottom - caveTop < minCaveGap) {
+                            const center = (caveTop + caveBottom) / 2;
+                            caveTop = center - minCaveGap / 2;
+                            caveBottom = center + minCaveGap / 2;
+                        }
+                        
+                        terrain.segments.push({
+                            x: x,
+                            width: caveWidth,
+                            topY: caveTop,
+                            bottomY: caveBottom,
+                            type: 'cave'
+                        });
+                        
+                        const actualCaveTop = caveTop + 20;
+                        const actualCaveBottom = caveBottom - 20;
+                        
+                        // Randomly spawn electric fences in caves
+                        if (Math.random() < 0.0375) { // Reduced from 15% to 3.75% (divided by 4)
+                            const fenceX = x + Math.random() * (caveWidth - 20);
+                            
+                            gameState.electricFences.push({
+                                x: fenceX,
+                                topY: actualCaveTop,
+                                bottomY: actualCaveBottom,
+                                width: 8,
+                                isOn: true, // Start in ON state
+                                switchTimer: 120, // 2 seconds ON initially
+                                onDuration: 120, // 2 seconds ON (at 60 FPS)
+                                offDuration: 180, // 3 seconds OFF (at 60 FPS)
+                                sparkTimer: 0
+                            });
+                        }
+                        
+                        // Randomly spawn balloons in caves
+                        if (Math.random() < 0.11) {
+                            const numBalloons = 1 + Math.floor(Math.random() * 2);
+                            
+                            for (let b = 0; b < numBalloons; b++) {
+                                const balloonX = x + (caveWidth / (numBalloons + 1)) * (b + 1);
+                                
+                                const balloonRadius = 12 + Math.random() * 6;
+                                
+                                const safeTopBound = actualCaveTop + 40 + balloonRadius;
+                                const safeBottomBound = actualCaveBottom - 40 - balloonRadius;
+                                
+                                if (safeBottomBound > safeTopBound && (safeBottomBound - safeTopBound) >= 60) {
+                                    const balloonY = safeTopBound + Math.random() * (safeBottomBound - safeTopBound);
+                                    
+                                    gameState.balloons.push({
+                                        x: balloonX,
+                                        y: balloonY,
+                                        radius: balloonRadius,
+                                        color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#FF9FF3', '#54A0FF'][Math.floor(Math.random() * 7)],
+                                        bobOffset: Math.random() * Math.PI * 2,
+                                        bobSpeed: 0.03 + Math.random() * 0.04
+                                    });
+                                }
+                            }
+                        }
+                        
+                        // Randomly spawn cannons on cave floor
+                        if (Math.random() < 0.08) {
+                            const cannonX = x + Math.random() * caveWidth;
+                            const actualCaveFloor = caveBottom - 20;
+                            const cannonY = actualCaveFloor - 25;
+                            
+                            gameState.cannons.push({
+                                x: cannonX,
+                                y: cannonY,
+                                width: 20,
+                                height: 25,
+                                fireTimer: Math.random() * 180 + 60,
+                                fireRate: 120
+                            });
+                        }
+                        
+                        // Randomly spawn zeppelins in caves
+                        if (Math.random() < 0.025) {
+                            const zeppelinX = x + Math.random() * (caveWidth - 80);
+                            const zeppelinY = actualCaveTop + 60 + Math.random() * (actualCaveBottom - actualCaveTop - 120);
+                            
+                            gameState.zeppelins.push({
+                                x: zeppelinX,
+                                y: zeppelinY,
+                                width: 80,
+                                height: 30,
+                                velY: (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.5),
+                                caveTop: actualCaveTop + 20,
+                                caveBottom: actualCaveBottom - 20
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Draw terrain
+        function drawTerrain() {
+            if (gameState.cavesEnabled || gameState.transitionPhase) {
+                ctx.fillStyle = '#8B4513';
+            } else {
+                ctx.fillStyle = 'rgba(135, 206, 235, 0)';
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let i = 0; i < terrain.topPoints.length; i++) {
+                const point = terrain.topPoints[i];
+                ctx.lineTo(point.x, point.y);
+            }
+            ctx.lineTo(canvas.width, 0);
+            ctx.fill();
+            
+            if (gameState.cavesEnabled || gameState.transitionPhase) {
+                ctx.fillStyle = '#8B4513';
+            } else {
+                ctx.fillStyle = '#228B22';
+            }
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            for (let i = 0; i < terrain.bottomPoints.length; i++) {
+                const point = terrain.bottomPoints[i];
+                ctx.lineTo(point.x, point.y);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.fill();
+            
+            if (gameState.cavesEnabled || gameState.transitionPhase) {
+                ctx.fillStyle = '#654321';
+                terrain.segments.forEach(segment => {
+                    if (segment.type === 'cave') {
+                        const caveRightEdge = segment.x + segment.width;
+                        const screenRightEdge = canvas.width;
+                        
+                        let ceilingStartX = Math.max(segment.x, screenRightEdge - (screenRightEdge - segment.x));
+                        let ceilingWidth = Math.max(0, Math.min(segment.width, screenRightEdge - segment.x));
+                        
+                        if (ceilingWidth > 0 && segment.x < screenRightEdge) {
+                            ctx.fillRect(segment.x, 0, ceilingWidth, segment.topY + 20);
+                        }
+                        
+                        ctx.fillRect(segment.x, segment.bottomY - 20, segment.width, canvas.height - (segment.bottomY - 20));
+                        
+                        ctx.strokeStyle = '#4A3728';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        if (ceilingWidth > 0 && segment.x < screenRightEdge) {
+                            ctx.moveTo(segment.x, segment.topY + 20);
+                            ctx.lineTo(segment.x, 0);
+                        }
+                        ctx.moveTo(segment.x, segment.bottomY - 20);
+                        ctx.lineTo(segment.x, canvas.height);
+                        ctx.stroke();
+                    }
+                });
+            }
+            
+            if (gameState.cavesEnabled || gameState.transitionPhase) {
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < terrain.topPoints.length - 1; i++) {
+                    const point1 = terrain.topPoints[i];
+                    const point2 = terrain.topPoints[i + 1];
+                    if (Math.random() < 0.3) {
+                        ctx.beginPath();
+                        ctx.moveTo(point1.x, point1.y - 10);
+                        ctx.lineTo(point2.x, point2.y - 5);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            if (!gameState.cavesEnabled && !gameState.transitionPhase) {
+                ctx.strokeStyle = '#1F6B1F';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < terrain.bottomPoints.length - 1; i++) {
+                    const point1 = terrain.bottomPoints[i];
+                    const point2 = terrain.bottomPoints[i + 1];
+                    if (Math.random() < 0.4) {
+                        ctx.beginPath();
+                        ctx.moveTo(point1.x, point1.y + 2);
+                        ctx.lineTo(point1.x + 3, point1.y - 5);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // Update electric fences
+        function updateElectricFences() {
+            gameState.electricFences.forEach(fence => {
+                fence.switchTimer--;
+                if (fence.switchTimer <= 0) {
+                    fence.isOn = !fence.isOn; // Toggle on/off state
+                    
+                    // Set next timer based on current state
+                    if (fence.isOn) {
+                        fence.switchTimer = fence.onDuration; // 2 seconds ON
+                    } else {
+                        fence.switchTimer = fence.offDuration; // 3 seconds OFF
+                    }
+                }
+                
+                fence.sparkTimer++;
+            });
+        }
+
+        // Draw electric fences
+        function drawElectricFences() {
+            gameState.electricFences.forEach(fence => {
+                if (fence.isOn) {
+                    ctx.strokeStyle = '#00FFFF';
+                    ctx.lineWidth = 6;
+                    ctx.globalAlpha = 0.9;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(fence.x, fence.topY);
+                    ctx.lineTo(fence.x, fence.bottomY);
+                    ctx.stroke();
+                    
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 3;
+                    for (let i = 0; i < 5; i++) {
+                        const sparkY = fence.topY + (fence.bottomY - fence.topY) * (i + 1) / 6;
+                        const sparkOffset = Math.sin(fence.sparkTimer * 0.2 + i) * 12;
+                        ctx.beginPath();
+                        ctx.moveTo(fence.x - 6, sparkY);
+                        ctx.lineTo(fence.x + 6 + sparkOffset, sparkY);
+                        ctx.stroke();
+                    }
+                    
+                    ctx.globalAlpha = 1;
+                } else {
+                    ctx.strokeStyle = '#999999';
+                    ctx.lineWidth = 4;
+                    ctx.globalAlpha = 0.6;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(fence.x, fence.topY);
+                    ctx.lineTo(fence.x, fence.bottomY);
+                    ctx.stroke();
+                    
+                    ctx.globalAlpha = 1;
+                }
+            });
+        }
+
+        // Check electric fence collisions
+        function checkElectricFenceCollisions() {
+            if (gameState.invulnerable) return false;
+            
+            const planeLeft = airplane.x;
+            const planeRight = airplane.x + airplane.width;
+            const planeTop = airplane.y;
+            const planeBottom = airplane.y + airplane.height;
+            
+            for (let fence of gameState.electricFences) {
+                if (fence.isOn) {
+                    if (planeRight >= fence.x - fence.width/2 && planeLeft <= fence.x + fence.width/2) {
+                        if (planeBottom >= fence.topY && planeTop <= fence.bottomY) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Update balloons
+        function updateBalloons() {
+            gameState.balloons.forEach(balloon => {
+                balloon.bobOffset += balloon.bobSpeed;
+            });
+            
+            for (let i = gameState.starburstAnimations.length - 1; i >= 0; i--) {
+                const starburst = gameState.starburstAnimations[i];
+                starburst.timer--;
+                
+                starburst.particles.forEach(particle => {
+                    particle.x += particle.velX;
+                    particle.y += particle.velY;
+                    particle.velX *= 0.98;
+                    particle.velY *= 0.98;
+                });
+                
+                if (starburst.scoreText) {
+                    starburst.scoreText.offsetY -= 1;
+                    starburst.scoreText.alpha = starburst.timer / 30;
+                }
+                
+                if (starburst.timer <= 0) {
+                    gameState.starburstAnimations.splice(i, 1);
+                }
+            }
+        }
+
+        // Draw balloons
+        function drawBalloons() {
+            gameState.balloons.forEach(balloon => {
+                const bobY = balloon.y + Math.sin(balloon.bobOffset) * 3;
+                
+                ctx.fillStyle = balloon.color;
+                ctx.beginPath();
+                ctx.arc(balloon.x, bobY, balloon.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.beginPath();
+                ctx.arc(balloon.x - balloon.radius * 0.3, bobY - balloon.radius * 0.3, balloon.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(balloon.x, bobY + balloon.radius);
+                ctx.lineTo(balloon.x, bobY + balloon.radius + 20);
+                ctx.stroke();
+            });
+        }
+
+        // Check balloon collection
+        function checkBalloonCollection() {
+            for (let i = gameState.balloons.length - 1; i >= 0; i--) {
+                const balloon = gameState.balloons[i];
+                const distance = Math.sqrt(
+                    Math.pow(airplane.x + airplane.width/2 - balloon.x, 2) + 
+                    Math.pow(airplane.y + airplane.height/2 - balloon.y, 2)
+                );
+                
+                if (distance < balloon.radius + airplane.width/2) {
+                    gameState.score += 100;
+                    createStarburst(balloon.x, balloon.y);
+                    gameState.balloons.splice(i, 1);
+                }
+            }
+        }
+
+        // Create starburst animation
+        function createStarburst(x, y) {
+            const particles = [];
+            for (let i = 0; i < 12; i++) {
+                const angle = (Math.PI * 2 * i) / 12;
+                particles.push({
+                    x: x,
+                    y: y,
+                    velX: Math.cos(angle) * (3 + Math.random() * 2),
+                    velY: Math.sin(angle) * (3 + Math.random() * 2),
+                    color: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'][Math.floor(Math.random() * 6)]
+                });
+            }
+            
+            gameState.starburstAnimations.push({
+                particles: particles,
+                timer: 30,
+                scoreText: {
+                    x: x,
+                    y: y,
+                    offsetY: 0,
+                    alpha: 1
+                }
+            });
+        }
+
+        // Draw starburst animations
+        function drawStarbursts() {
+            gameState.starburstAnimations.forEach(starburst => {
+                const alpha = starburst.timer / 30;
+                
+                starburst.particles.forEach(particle => {
+                    ctx.fillStyle = particle.color;
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                if (starburst.scoreText) {
+                    ctx.globalAlpha = starburst.scoreText.alpha;
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const scoreText = starburst.scoreText.points || 100;
+                    
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(scoreText.toString(), starburst.scoreText.x, starburst.scoreText.y + starburst.scoreText.offsetY);
+                    ctx.fillText(scoreText.toString(), starburst.scoreText.x, starburst.scoreText.y + starburst.scoreText.offsetY);
+                }
+                
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        // Update cannons and bullets
+        function updateCannons() {
+            gameState.cannons.forEach(cannon => {
+                cannon.fireTimer--;
+                if (cannon.fireTimer <= 0) {
+                    const dx = airplane.x + airplane.width/2 - cannon.x;
+                    const dy = airplane.y + airplane.height/2 - cannon.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const speed = 3;
+                    
+                    gameState.bullets.push({
+                        x: cannon.x,
+                        y: cannon.y - 5,
+                        velX: (dx / distance) * speed,
+                        velY: (dy / distance) * speed,
+                        radius: 3
+                    });
+                    
+                    cannon.fireTimer = cannon.fireRate;
+                }
+            });
+            
+            gameState.bullets.forEach(bullet => {
+                bullet.x += bullet.velX;
+                bullet.y += bullet.velY;
+            });
+        }
+
+        // Draw cannons
+        function drawCannons() {
+            gameState.cannons.forEach(cannon => {
+                ctx.fillStyle = '#444444';
+                ctx.fillRect(cannon.x - cannon.width/2, cannon.y, cannon.width, cannon.height);
+                
+                const dx = airplane.x + airplane.width/2 - cannon.x;
+                const dy = airplane.y + airplane.height/2 - cannon.y;
+                const angle = Math.atan2(dy, dx);
+                
+                ctx.save();
+                ctx.translate(cannon.x, cannon.y);
+                ctx.rotate(angle);
+                
+                ctx.fillStyle = '#333333';
+                ctx.fillRect(0, -3, 15, 6);
+                
+                ctx.restore();
+                
+                if (cannon.fireTimer > cannon.fireRate - 5) {
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.save();
+                    ctx.translate(cannon.x, cannon.y);
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.arc(15, 0, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+        }
+
+        // Draw bullets
+        function drawBullets() {
+            ctx.fillStyle = '#FFAA00';
+            gameState.bullets.forEach(bullet => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Check bullet collisions
+        function checkBulletCollisions() {
+            for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+                const bullet = gameState.bullets[i];
+                const distance = Math.sqrt(
+                    Math.pow(airplane.x + airplane.width/2 - bullet.x, 2) + 
+                    Math.pow(airplane.y + airplane.height/2 - bullet.y, 2)
+                );
+                
+                if (distance < bullet.radius + airplane.width/2) {
+                    gameState.bullets.splice(i, 1);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Update zeppelins
+        function updateZeppelins() {
+            gameState.zeppelins.forEach(zeppelin => {
+                const bufferDistance = 40;
+                if (zeppelin.velY < 0 && zeppelin.y - zeppelin.height/2 <= zeppelin.caveTop + bufferDistance) {
+                    zeppelin.velY = Math.abs(zeppelin.velY);
+                }
+                
+                if (zeppelin.velY > 0 && zeppelin.y + zeppelin.height/2 >= zeppelin.caveBottom - bufferDistance) {
+                    zeppelin.velY = -Math.abs(zeppelin.velY);
+                }
+                
+                zeppelin.y += zeppelin.velY;
+                
+                if (zeppelin.y - zeppelin.height/2 <= zeppelin.caveTop) {
+                    zeppelin.y = zeppelin.caveTop + zeppelin.height/2;
+                    zeppelin.velY = Math.abs(zeppelin.velY);
+                }
+                
+                if (zeppelin.y + zeppelin.height/2 >= zeppelin.caveBottom) {
+                    zeppelin.y = zeppelin.caveBottom - zeppelin.height/2;
+                    zeppelin.velY = -Math.abs(zeppelin.velY);
+                }
+            });
+        }
+
+        // Draw zeppelins
+        function drawZeppelins() {
+            gameState.zeppelins.forEach(zeppelin => {
+                ctx.save();
+                ctx.translate(zeppelin.x, zeppelin.y);
+                
+                ctx.fillStyle = '#C0C0C0';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, zeppelin.width/2, zeppelin.height/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#808080';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-12, zeppelin.height/2 - 5, 24, 8);
+                
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-10, zeppelin.height/2 - 5);
+                ctx.lineTo(-15, zeppelin.height/2 - 15);
+                ctx.moveTo(10, zeppelin.height/2 - 5);
+                ctx.lineTo(15, zeppelin.height/2 - 15);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(zeppelin.width/2 - 5, -2, 8, 4);
+                
+                ctx.restore();
+            });
+        }
+
+        // Check zeppelin collection
+        function checkZeppelinCollection() {
+            for (let i = gameState.zeppelins.length - 1; i >= 0; i--) {
+                const zeppelin = gameState.zeppelins[i];
+                const distance = Math.sqrt(
+                    Math.pow(airplane.x + airplane.width/2 - zeppelin.x, 2) + 
+                    Math.pow(airplane.y + airplane.height/2 - zeppelin.y, 2)
+                );
+                
+                if (distance < zeppelin.width/2 + airplane.width/2) {
+                    gameState.score += 500;
+                    createZeppelinStarburst(zeppelin.x, zeppelin.y);
+                    gameState.zeppelins.splice(i, 1);
+                }
+            }
+        }
+
+        // Create zeppelin starburst animation
+        function createZeppelinStarburst(x, y) {
+            const particles = [];
+            for (let i = 0; i < 16; i++) {
+                const angle = (Math.PI * 2 * i) / 16;
+                particles.push({
+                    x: x,
+                    y: y,
+                    velX: Math.cos(angle) * (4 + Math.random() * 3),
+                    velY: Math.sin(angle) * (4 + Math.random() * 3),
+                    color: ['#FFD700', '#FFA500', '#FF6347', '#32CD32', '#1E90FF', '#9370DB'][Math.floor(Math.random() * 6)]
+                });
+            }
+            
+            gameState.starburstAnimations.push({
+                particles: particles,
+                timer: 40,
+                scoreText: {
+                    x: x,
+                    y: y,
+                    offsetY: 0,
+                    alpha: 1,
+                    points: 500
+                }
+            });
+        }
+
+        // Update lives display with zeppelin icons
+        function updateLivesDisplay() {
+            let livesHTML = '';
+            for (let i = 0; i < gameState.lives; i++) {
+                let zeppelinStyle = 'display: inline-block; width: 40px; height: 20px; background: #FF4444; border-radius: 20px; margin-right: 8px; position: relative; vertical-align: middle; border: 1px solid #CC3333;';
+                
+                if (gameState.newLifeAnimation && i === gameState.lives - 1) {
+                    const scale = 1 + Math.sin(gameState.newLifeAnimation.timer * 0.3) * 0.3;
+                    const glow = Math.floor(128 + Math.sin(gameState.newLifeAnimation.timer * 0.2) * 127);
+                    zeppelinStyle += ` transform: scale(${scale}); box-shadow: 0 0 10px rgba(255, ${glow}, 0, 0.8); transition: all 0.1s ease;`;
+                }
+                
+                livesHTML += `<span style="${zeppelinStyle}">`;
+                livesHTML += '<span style="position: absolute; top: 50%; left: -4px; transform: translateY(-50%); width: 8px; height: 4px; background: #AA2222; border-radius: 1px;"></span>';
+                livesHTML += '<span style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 12px; height: 3px; background: #8B4513; border-radius: 1px;"></span>';
+                livesHTML += '</span>';
+            }
+            livesElement.innerHTML = livesHTML;
+        }
+
+        // Check for life bonus every 10,000 points
+        function checkLifeBonus() {
+            const currentThreshold = Math.floor(gameState.score / 10000);
+            if (currentThreshold > gameState.lastLifeScoreThreshold) {
+                gameState.lives++;
+                gameState.lastLifeScoreThreshold = currentThreshold;
+                
+                gameState.newLifeAnimation = {
+                    timer: 0,
+                    duration: 120
+                };
+                
+                updateLivesDisplay();
+            }
+        }
+
+        // Update new life animation
+        function updateNewLifeAnimation() {
+            if (gameState.newLifeAnimation) {
+                gameState.newLifeAnimation.timer++;
+                
+                if (gameState.newLifeAnimation.timer >= gameState.newLifeAnimation.duration) {
+                    gameState.newLifeAnimation = null;
+                    updateLivesDisplay();
+                } else {
+                    updateLivesDisplay();
+                }
+            }
+        }
+
+        // Update airplane (zeppelin)
+        function updateAirplane() {
+            if (gameState.exploding) return;
+            
+            airplane.velX = 0;
+            airplane.velY = 0;
+            
+            if (keys['w'] || keys['arrowup']) airplane.velY = -airplane.speed;
+            if (keys['s'] || keys['arrowdown']) airplane.velY = airplane.speed;
+            if (keys['a'] || keys['arrowleft']) airplane.velX = -airplane.speed;
+            if (keys['d'] || keys['arrowright']) airplane.velX = airplane.speed;
+            
+            const speed = Math.sqrt(airplane.velX * airplane.velX + airplane.velY * airplane.velY);
+            if (speed > airplane.maxSpeed) {
+                airplane.velX = (airplane.velX / speed) * airplane.maxSpeed;
+                airplane.velY = (airplane.velY / speed) * airplane.maxSpeed;
+            }
+            
+            airplane.x += airplane.velX;
+            airplane.y += airplane.velY;
+            
+            airplane.x = Math.max(20, Math.min(canvas.width - airplane.width - 20, airplane.x));
+            airplane.y = Math.max(0, Math.min(canvas.height - airplane.height, airplane.y));
+        }
+
+        // Draw airplane (zeppelin)
+        function drawAirplane() {
+            if (gameState.exploding) return;
+            
+            ctx.save();
+            ctx.translate(airplane.x + airplane.width/2, airplane.y + airplane.height/2);
+            
+            if (gameState.invulnerable && Math.floor(gameState.invulnerabilityTimer / 5) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+            
+            let angle = 0;
+            if (airplane.velX !== 0 || airplane.velY !== 0) {
+                angle = Math.atan2(airplane.velY, airplane.velX + 2) * 0.3;
+            }
+            ctx.rotate(angle);
+            
+            ctx.fillStyle = '#FF4444';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, airplane.width/2, airplane.height/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#CC3333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(-8, airplane.height/2 - 3, 16, 6);
+            
+            ctx.strokeStyle = '#654321';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-6, airplane.height/2 - 3);
+            ctx.lineTo(-10, airplane.height/2 - 10);
+            ctx.moveTo(6, airplane.height/2 - 3);
+            ctx.lineTo(10, airplane.height/2 - 10);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#AA2222';
+            ctx.fillRect(airplane.width/2 - 3, -2, 6, 4);
+            
+            ctx.restore();
+        }
+
+        // Collision detection
+        function checkCollisions() {
+            const planeLeft = airplane.x;
+            const planeRight = airplane.x + airplane.width;
+            const planeTop = airplane.y;
+            const planeBottom = airplane.y + airplane.height;
+            
+            for (let i = 0; i < terrain.topPoints.length - 1; i++) {
+                const topPoint = terrain.topPoints[i];
+                const bottomPoint = terrain.bottomPoints[i];
+                
+                if (planeRight >= topPoint.x - 10 && planeLeft <= topPoint.x + 10) {
+                    if ((gameState.cavesEnabled || gameState.transitionPhase) && planeTop <= topPoint.y) {
+                        return true;
+                    }
+                    if (planeBottom >= bottomPoint.y) {
+                        return true;
+                    }
+                }
+            }
+            
+            if (gameState.cavesEnabled || gameState.transitionPhase) {
+                for (let segment of terrain.segments) {
+                    if (segment.type === 'cave') {
+                        const screenRightEdge = canvas.width;
+                        const ceilingVisible = segment.x < screenRightEdge;
+                        
+                        if (planeRight >= segment.x && planeLeft <= segment.x + segment.width) {
+                            if (ceilingVisible && planeTop <= segment.topY + 20) {
+                                return true;
+                            }
+                            if (planeBottom >= segment.bottomY - 20) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+
+        // Handle collision
+        function handleCollision() {
+            if (gameState.invulnerable || gameState.exploding) return;
+            
+            gameState.lives--;
+            
+            gameState.exploding = true;
+            gameState.explosionTimer = 120;
+            createExplosion(airplane.x + airplane.width/2, airplane.y + airplane.height/2);
+            
+            if (gameState.lives <= 0) {
+                return;
+            }
+        }
+
+        // Create explosion particles
+        function createExplosion(x, y) {
+            gameState.explosionParticles = [];
+            for (let i = 0; i < 20; i++) {
+                gameState.explosionParticles.push({
+                    x: x,
+                    y: y,
+                    velX: (Math.random() - 0.5) * 10,
+                    velY: (Math.random() - 0.5) * 10,
+                    size: Math.random() * 8 + 2,
+                    life: 60,
+                    maxLife: 60,
+                    color: Math.random() < 0.5 ? '#FF4444' : '#FF8800'
+                });
+            }
+        }
+
+        // Update explosion particles
+        function updateExplosion() {
+            for (let i = gameState.explosionParticles.length - 1; i >= 0; i--) {
+                const particle = gameState.explosionParticles[i];
+                particle.x += particle.velX;
+                particle.y += particle.velY;
+                particle.velY += 0.2;
+                particle.life--;
+                
+                if (particle.life <= 0) {
+                    gameState.explosionParticles.splice(i, 1);
+                }
+            }
+        }
+
+        // Draw explosion
+        function drawExplosion() {
+            gameState.explosionParticles.forEach(particle => {
+                const alpha = particle.life / particle.maxLife;
+                ctx.fillStyle = particle.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Find safe spawn position
+        function findSafeSpawnPosition() {
+            const safeX = 100;
+            let safeY = canvas.height / 2;
+            let attempts = 0;
+            
+            while (attempts < 20) {
+                let safe = true;
+                const testLeft = safeX;
+                const testRight = safeX + airplane.width;
+                const testTop = safeY;
+                const testBottom = safeY + airplane.height;
+                
+                for (let i = 0; i < terrain.topPoints.length - 1; i++) {
+                    const topPoint = terrain.topPoints[i];
+                    const bottomPoint = terrain.bottomPoints[i];
+                    
+                    if (testRight >= topPoint.x - 20 && testLeft <= topPoint.x + 20) {
+                        if ((gameState.cavesEnabled || gameState.transitionPhase) && testTop <= topPoint.y + 10) {
+                            safe = false;
+                            break;
+                        }
+                        if (testBottom >= bottomPoint.y - 10) {
+                            safe = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (safe && (gameState.cavesEnabled || gameState.transitionPhase)) {
+                    for (let segment of terrain.segments) {
+                        if (segment.type === 'cave') {
+                            if (testRight >= segment.x && testLeft <= segment.x + segment.width) {
+                                if (testTop <= segment.topY + 30 || testBottom >= segment.bottomY - 30) {
+                                    safe = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (safe) {
+                    return { x: safeX, y: safeY };
+                }
+                
+                safeY = 100 + Math.random() * (canvas.height - 200);
+                attempts++;
+            }
+            
+            return { x: safeX, y: canvas.height / 2 };
+        }
+
+        // Game over
+        function gameOver() {
+            gameState.screen = 'gameOver';
+            gameState.running = false;
+            updateLivesDisplay();
+            finalScoreElement.textContent = gameState.score;
+            gameOverElement.style.display = 'block';
+        }
+
+        // Update game
+        function update() {
+            if (gameState.screen !== 'playing') return;
+            
+            if (gameState.exploding) {
+                updateExplosion();
+                gameState.explosionTimer--;
+                
+                if (gameState.explosionTimer <= 0) {
+                    gameState.exploding = false;
+                    gameState.explosionParticles = [];
+                    
+                    if (gameState.lives <= 0) {
+                        gameOver();
+                        return;
+                    } else {
+                        const safePos = findSafeSpawnPosition();
+                        airplane.x = safePos.x;
+                        airplane.y = safePos.y;
+                        airplane.velX = 0;
+                        airplane.velY = 0;
+                        
+                        gameState.invulnerable = true;
+                        gameState.invulnerabilityTimer = 90;
+                    }
+                }
+                return;
+            }
+            
+            updateTerrain();
+            updateAirplane();
+            updateBalloons();
+            updateCannons();
+            updateZeppelins();
+            updateElectricFences();
+            updateNewLifeAnimation();
+            
+            if (checkCollisions()) {
+                handleCollision();
+                return;
+            }
+            
+            if (checkBulletCollisions()) {
+                handleCollision();
+                return;
+            }
+            
+            if (checkElectricFenceCollisions()) {
+                handleCollision();
+                return;
+            }
+            
+            checkBalloonCollection();
+            checkZeppelinCollection();
+            checkLifeBonus();
+            
+            if (gameState.invulnerable) {
+                gameState.invulnerabilityTimer--;
+                if (gameState.invulnerabilityTimer <= 0) {
+                    gameState.invulnerable = false;
+                }
+            }
+            
+            gameState.score += 1;
+            
+            scoreElement.textContent = gameState.score;
+            updateLivesDisplay();
+        }
+
+        // Render game
+        function render() {
+            if (gameState.screen !== 'playing') return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (gameState.cavesEnabled) {
+                ctx.fillStyle = '#D3D3D3';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(0.5, '#98D8E8');
+                gradient.addColorStop(1, '#B0E6FF');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                for (let i = 0; i < 5; i++) {
+                    const cloudX = (canvas.width + 100) - ((gameState.score * 0.2 + i * 200) % (canvas.width + 300));
+                    const cloudY = 50 + i * 30;
+                    ctx.beginPath();
+                    ctx.arc(cloudX, cloudY, 20, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 25, cloudY, 25, 0, Math.PI * 2);
+                    ctx.arc(cloudX + 50, cloudY, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            drawTerrain();
+            drawElectricFences();
+            drawCannons();
+            drawBullets();
+            drawZeppelins();
+            drawBalloons();
+            drawAirplane();
+            drawStarbursts();
+            
+            if (gameState.exploding) {
+                drawExplosion();
+            }
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            render();
+            renderTitleClouds();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Render clouds for title screen
+        function renderTitleClouds() {
+            if (gameState.screen !== 'title') return;
+            
+            const titleCanvas = document.createElement('canvas');
+            titleCanvas.width = window.innerWidth;
+            titleCanvas.height = window.innerHeight;
+            titleCanvas.style.position = 'absolute';
+            titleCanvas.style.top = '0';
+            titleCanvas.style.left = '0';
+            titleCanvas.style.pointerEvents = 'none';
+            titleCanvas.style.zIndex = '31';
+            
+            const existingCanvas = document.querySelector('.title-clouds');
+            if (existingCanvas) {
+                existingCanvas.remove();
+            }
+            
+            titleCanvas.className = 'title-clouds';
+            titleScreenElement.appendChild(titleCanvas);
+            
+            const titleCtx = titleCanvas.getContext('2d');
+            
+            titleCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            const time = Date.now() * 0.001;
+            
+            for (let i = 0; i < 8; i++) {
+                const cloudX = (titleCanvas.width + 150) - ((time * 20 + i * 250) % (titleCanvas.width + 400));
+                const cloudY = 80 + i * 60;
+                
+                titleCtx.beginPath();
+                titleCtx.arc(cloudX, cloudY, 25, 0, Math.PI * 2);
+                titleCtx.arc(cloudX + 30, cloudY, 35, 0, Math.PI * 2);
+                titleCtx.arc(cloudX + 65, cloudY, 25, 0, Math.PI * 2);
+                titleCtx.fill();
+                
+                if (i % 2 === 0) {
+                    titleCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    titleCtx.beginPath();
+                    titleCtx.arc(cloudX + 100, cloudY - 20, 15, 0, Math.PI * 2);
+                    titleCtx.arc(cloudX + 120, cloudY - 20, 20, 0, Math.PI * 2);
+                    titleCtx.arc(cloudX + 145, cloudY - 20, 15, 0, Math.PI * 2);
+                    titleCtx.fill();
+                    titleCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                }
+            }
+        }
+
+        // Initialize and start game
+        showTitleScreen();
+        initTerrain();
+        gameLoop();
+    </script>
+</body>
+</html>
